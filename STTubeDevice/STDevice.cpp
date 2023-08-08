@@ -10,7 +10,7 @@
 
 void print2file(char * c,...)
 {
-	static char s[1024];
+	static char s[1024];  
 	va_list argptr;
 	int cnt;
 	va_start(argptr, c);
