@@ -213,7 +213,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OutputFile>../Binary/Debug/DfuSeCommand.exe</OutputFile>
-      <AdditionalDependencies>../STDFU/release/STDFU.lib;../STDFUFiles/Release/STDFUFiles.lib;../STDFUprt/release/STDFUprt.lib;setupapi.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../STDFU/Debug/STDFU.lib;../STDFUFiles/Debug/STDFUFiles.lib;../STDFUprt/Debug/STDFUprt.lib;setupapi.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
