@@ -4,6 +4,7 @@
 BOOL CNeuraDownloadDLG::OnInitDialog()
 {
 	CDfuSeDemoDlg::OnInitDialog();
+
 	ModifyStyle(WS_CAPTION, 0); // to hide title bar
 	prepAndLaunchDownload();  //find the DFU port and download the DFU file!
 	return TRUE;

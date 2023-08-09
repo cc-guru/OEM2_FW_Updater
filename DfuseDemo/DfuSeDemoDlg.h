@@ -38,6 +38,7 @@ class CDfuSeDemoDlg : public CDialog
 // Construction
 public:
 	CDfuSeDemoDlg(CWnd* pParent = NULL);	// standard constructor
+public:
 // Dialog Data
 	//{{AFX_DATA(CDfuSeDemoDlg)
 	enum { IDD = IDD_DfuSeDemo_DIALOG };
@@ -114,7 +115,7 @@ protected:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 
-	void LaunchUpgrade();
+	void LaunchUpgrade(CString path);
 	void prepAndLaunchDownload();
 	void TakeMCUOutofDFUMode();
 

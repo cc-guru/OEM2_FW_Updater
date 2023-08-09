@@ -359,6 +359,7 @@ void CDfuSeDemoDlg::Refresh()
 	ReleaseHIDMemory();
 	m_Enum.FindHidDevice(&m_HidDevices,&m_HidDevice_Counter);
 	FindMyHIDDevice();
+
 	for(i=0;i<int(m_HidDevice_Counter);i++)
 	{
 		PHID_DEVICE pWalk;
@@ -1833,8 +1834,55 @@ void CDfuSeDemoDlg::OnButtonupgrade()
 	prepAndLaunchDownload(); //get everything ready and launch the download the dfu file
 }
 
+CString GetCurrentDirectory()
+{
+	TCHAR buffer[MAX_PATH];
+	DWORD length = ::GetCurrentDirectory(MAX_PATH, buffer);
+	if (length > 0 && length < MAX_PATH)
+	{
+		// Make sure the directory path ends with a backslash
+		CString directory(buffer);
+		if (directory.Right(1) != _T("\\"))
+		{
+			directory += _T("\\");
+		}
+		return directory;
+	}
+	else
+	{
+		// Error getting current directory
+		return _T("");
+	}
+}
+
+CString GetFilePath(LPCTSTR lpszFileName)
+{
+	if (!strlen(lpszFileName))
+		return "";
+
+	if (strchr(lpszFileName, '\\'))
+		return CString(lpszFileName);
+
+	return GetCurrentDirectory() + lpszFileName;
+}
+
+BOOL FileExists(LPCTSTR lpszFilePath)
+{
+	CFileStatus status;
+
+	return CFile::GetStatus(lpszFilePath, status);
+}
+
 void CDfuSeDemoDlg::prepAndLaunchDownload()
 {
+	// Get the file to download from the command line
+	CString path = GetFilePath(AfxGetApp()->m_lpCmdLine);
+	if (!FileExists(path))
+	{
+		AfxMessageBox(_T("The firmware file does not exist!"));
+		AfxPostQuitMessage(-1);
+		return;
+	}
 
 	CString Tempo, FileId, DevId;
 
@@ -1842,7 +1890,8 @@ void CDfuSeDemoDlg::prepAndLaunchDownload()
 	m_CurrentTarget = m_CtrlDevTargets.GetNextItem(-1, LVIS_SELECTED);
 	if (m_CurrentTarget == -1)
 	{
-		HandleTxtError("Please select one or several targets before !");
+		AfxMessageBox(_T("Please select one or several targets before !"));
+		AfxPostQuitMessage(-1);
 		return;
 	}
 
@@ -1872,12 +1921,13 @@ void CDfuSeDemoDlg::prepAndLaunchDownload()
 		}
 	}
 
-	LaunchUpgrade();
+	LaunchUpgrade(path);
 
 	UpdateData(FALSE);
 
 }
-void CDfuSeDemoDlg::LaunchUpgrade() 
+
+void CDfuSeDemoDlg::LaunchUpgrade(CString path)
 {
 	DFUThreadContext Context;
 	HANDLE hFile;
@@ -1887,13 +1937,7 @@ void CDfuSeDemoDlg::LaunchUpgrade()
 	int i, TargetSel=m_CurrentTarget;
 	HANDLE hImage;
     
-	
-
-	// Get the file to download from the command line
-	LPTSTR FWFileToDownload = AfxGetApp()->m_lpCmdLine;
-
-
-	dwRet=STDFUFILES_OpenExistingDFUFile((LPSTR)(LPCSTR)FWFileToDownload, &hFile, NULL, NULL, NULL, &NbTargets);
+	dwRet=STDFUFILES_OpenExistingDFUFile((LPSTR)(LPCSTR)path, &hFile, NULL, NULL, NULL, &NbTargets);
 	if (dwRet==STDFUFILES_NOERROR)
 	{
 		for (i=0;i<NbTargets;i++)
@@ -2286,7 +2330,7 @@ void CDfuSeDemoDlg::OnTimer(UINT_PTR nIDEvent)
 						if (m_CurrentTarget>=0)
 						{
 							bAllTargetsFinished=FALSE;
-							LaunchUpgrade();
+							LaunchUpgrade("");
 						}
 					}
 					if (bAllTargetsFinished)
@@ -2766,6 +2810,8 @@ void CDfuSeDemoDlg::OnDestroy()
 	CDialog::OnDestroy();
 	delete m_pBkBrush;
 	delete m_pBkBrushReadOnly;
+
+	ReleaseHIDMemory();
 }
 
 BOOL CDfuSeDemoDlg::OnDeviceChange(UINT nEventType,DWORD_PTR dwData)

@@ -4,7 +4,8 @@
     <RESOURCE_FILE>DfuSeDemo.rc</RESOURCE_FILE>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>D:\temp\302A.dfu</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>OEM26.1.69.dfu</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>$(TargetDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>
