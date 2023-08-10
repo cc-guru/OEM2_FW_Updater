@@ -116,7 +116,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	void LaunchUpgrade(CString path);
-	void prepAndLaunchDownload();
 	void TakeMCUOutofDFUMode();
 
 private:

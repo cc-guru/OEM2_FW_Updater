@@ -1788,8 +1788,65 @@ void CDfuSeDemoDlg::LaunchVerify()
 	}
 }
 
+CString GetCurrentDirectory()
+{
+	TCHAR buffer[MAX_PATH];
+	DWORD length = ::GetCurrentDirectory(MAX_PATH, buffer);
+	if (length > 0 && length < MAX_PATH)
+	{
+		// Make sure the directory path ends with a backslash
+		CString directory(buffer);
+		if (directory.Right(1) != _T("\\"))
+		{
+			directory += _T("\\");
+		}
+		return directory;
+	}
+	else
+	{
+		// Error getting current directory
+		return _T("");
+	}
+}
+
+CString GetFilePath(LPCTSTR lpszFileName)
+{
+	if (!strlen(lpszFileName))
+		return "";
+
+	if (strchr(lpszFileName, '\\'))
+		return CString(lpszFileName);
+
+	return GetCurrentDirectory() + lpszFileName;
+}
+
+BOOL FileExists(LPCTSTR lpszFilePath)
+{
+	CFileStatus status;
+
+	return CFile::GetStatus(lpszFilePath, status);
+}
+
 void CDfuSeDemoDlg::OnButtonupgrade() 
 {
+	// Get the file to download from the command line
+	CString path = GetFilePath(AfxGetApp()->m_lpCmdLine);
+	if (!FileExists(path))
+	{
+		AfxMessageBox(_T("The firmware file does not exist!"));
+		AfxPostQuitMessage(-1);
+		return;
+	}
+
+	UpdateData(TRUE);
+	m_CurrentTarget = m_CtrlDevTargets.GetNextItem(-1, LVIS_SELECTED);
+	if (m_CurrentTarget == -1)
+	{
+		AfxMessageBox(_T("Please select one or several targets before !"));
+		AfxPostQuitMessage(-1);
+		return;
+	}
+
 	if(ReadProtected)
 	{
 		if (AfxMessageBox("Your device is read protected.\nWould you remove the read protection?", MB_YESNO |MB_ICONQUESTION)==IDYES)
@@ -1831,69 +1888,7 @@ void CDfuSeDemoDlg::OnButtonupgrade()
 			return;
 	}
 
-	prepAndLaunchDownload(); //get everything ready and launch the download the dfu file
-}
-
-CString GetCurrentDirectory()
-{
-	TCHAR buffer[MAX_PATH];
-	DWORD length = ::GetCurrentDirectory(MAX_PATH, buffer);
-	if (length > 0 && length < MAX_PATH)
-	{
-		// Make sure the directory path ends with a backslash
-		CString directory(buffer);
-		if (directory.Right(1) != _T("\\"))
-		{
-			directory += _T("\\");
-		}
-		return directory;
-	}
-	else
-	{
-		// Error getting current directory
-		return _T("");
-	}
-}
-
-CString GetFilePath(LPCTSTR lpszFileName)
-{
-	if (!strlen(lpszFileName))
-		return "";
-
-	if (strchr(lpszFileName, '\\'))
-		return CString(lpszFileName);
-
-	return GetCurrentDirectory() + lpszFileName;
-}
-
-BOOL FileExists(LPCTSTR lpszFilePath)
-{
-	CFileStatus status;
-
-	return CFile::GetStatus(lpszFilePath, status);
-}
-
-void CDfuSeDemoDlg::prepAndLaunchDownload()
-{
-	// Get the file to download from the command line
-	CString path = GetFilePath(AfxGetApp()->m_lpCmdLine);
-	if (!FileExists(path))
-	{
-		AfxMessageBox(_T("The firmware file does not exist!"));
-		AfxPostQuitMessage(-1);
-		return;
-	}
-
 	CString Tempo, FileId, DevId;
-
-	UpdateData(TRUE);
-	m_CurrentTarget = m_CtrlDevTargets.GetNextItem(-1, LVIS_SELECTED);
-	if (m_CurrentTarget == -1)
-	{
-		AfxMessageBox(_T("Please select one or several targets before !"));
-		AfxPostQuitMessage(-1);
-		return;
-	}
 
 	m_CtrlDevAppVid.GetWindowText(DevId);
 	if (DevId.IsEmpty())
@@ -1924,7 +1919,6 @@ void CDfuSeDemoDlg::prepAndLaunchDownload()
 	LaunchUpgrade(path);
 
 	UpdateData(FALSE);
-
 }
 
 void CDfuSeDemoDlg::LaunchUpgrade(CString path)
