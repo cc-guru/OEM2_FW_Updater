@@ -355,88 +355,52 @@ void CDfuSeDemoDlg::Refresh()
 	m_CtrlDevAppPid.SetWindowText("");
 	m_CtrlDevAppBcd.SetWindowText("");
 
-	// Begin with HID devices  // Commented in Version V3.0.3 and Keep it for customer usage if wanted.
-	ReleaseHIDMemory();
-	m_Enum.FindHidDevice(&m_HidDevices,&m_HidDevice_Counter);
-	FindMyHIDDevice();
+	GUID Guid = GUID_DFU;
 
-	for(i=0;i<int(m_HidDevice_Counter);i++)
+	info=SetupDiGetClassDevs(&Guid, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
+	if (info!=INVALID_HANDLE_VALUE)  
 	{
-		PHID_DEVICE pWalk;
+		DWORD devIndex;
+		SP_INTERFACE_DEVICE_DATA ifData;
+		ifData.cbSize=sizeof(ifData);
 
-		pWalk = m_HidDevices + m_Tab_Index[i];			
-		if(HidD_GetProductString(pWalk->HidDevice, Product, sizeof(Product)))
+		for (devIndex=0;SetupDiEnumDeviceInterfaces(info, NULL, &Guid, devIndex, &ifData);++devIndex)
 		{
-			for(j=0;j<160;j+=2)
-				Prod += Product[j];
-		}
-		else 
-			Prod="(Other HID Device)";
+			DWORD needed;
 
-		String.Format("%s",Prod);
-		m_CtrlDFUDevices.AddString(String);
-		m_CtrlDevices.AddString(String);
-		Prod = "";
-	}  // Commented in Version V3.0.3 and Keep it for customer usage if wanted.
+			SetupDiGetDeviceInterfaceDetail(info, &ifData, NULL, 0, &needed, NULL);
 
-
-    // Continue with DFU devices. DFU devices will be listed after HID ones
-	for (i=0;i<1;i++)
-	{
-		GUID Guid;
-
-		if (i==0)
-			Guid=GUID_DFU;
-		//else if (i==1)
-		//	Guid=GUID_APP;
-		else
-		    HidD_GetHidGuid(&Guid);	
-
-		info=SetupDiGetClassDevs(&Guid, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
-		if (info!=INVALID_HANDLE_VALUE)  
-		{
-			DWORD devIndex;
-			SP_INTERFACE_DEVICE_DATA ifData;
-			ifData.cbSize=sizeof(ifData);
-
-			for (devIndex=0;SetupDiEnumDeviceInterfaces(info, NULL, &Guid, devIndex, &ifData);++devIndex)
-			{
-				DWORD needed;
-
-				SetupDiGetDeviceInterfaceDetail(info, &ifData, NULL, 0, &needed, NULL);
-
-				PSP_INTERFACE_DEVICE_DETAIL_DATA detail=(PSP_INTERFACE_DEVICE_DETAIL_DATA)new BYTE[needed];
-				detail->cbSize=sizeof(SP_INTERFACE_DEVICE_DETAIL_DATA);
-				SP_DEVINFO_DATA did={sizeof(SP_DEVINFO_DATA)};
+			PSP_INTERFACE_DEVICE_DETAIL_DATA detail=(PSP_INTERFACE_DEVICE_DETAIL_DATA)new BYTE[needed];
+			detail->cbSize=sizeof(SP_INTERFACE_DEVICE_DETAIL_DATA);
+			SP_DEVINFO_DATA did={sizeof(SP_DEVINFO_DATA)};
 			
-				if (SetupDiGetDeviceInterfaceDetail(info, &ifData, detail, needed, NULL, &did))
-				{
-					// Add the link to the list of all DFU devices
-					if (strstr(detail->DevicePath, "vid_0483") != NULL)//add by havenxie
-					{
-						CString Tmp;
-						Tmp = detail->DevicePath;
-						Tmp.MakeUpper();
-						m_CtrlDFUDevices.AddString(Tmp);
-					}
-				}
-				else
-					m_CtrlDFUDevices.AddString("");
-
+			if (SetupDiGetDeviceInterfaceDetail(info, &ifData, detail, needed, NULL, &did))
+			{
+				// Add the link to the list of all DFU devices
 				if (strstr(detail->DevicePath, "vid_0483") != NULL)//add by havenxie
 				{
-					if (SetupDiGetDeviceRegistryProperty(info, &did, SPDRP_DEVICEDESC, NULL, (PBYTE)Product, 253, NULL))
-						Prod = Product;
-					else
-						//Prod = "(Unnamed DFU device)";
-						Prod = "(Unnamed DFU | HID device)";//modified by havenxie
-					// Add the name of the device
-					m_CtrlDevices.AddString(Prod);
+					CString Tmp;
+					Tmp = detail->DevicePath;
+					Tmp.MakeUpper();
+					m_CtrlDFUDevices.AddString(Tmp);
 				}
-				delete[] (PBYTE)detail;
 			}
-			SetupDiDestroyDeviceInfoList(info);
+			else
+				m_CtrlDFUDevices.AddString("");
+
+			if (strstr(detail->DevicePath, "vid_0483") != NULL)//add by havenxie
+			{
+				if (SetupDiGetDeviceRegistryProperty(info, &did, SPDRP_DEVICEDESC, NULL, (PBYTE)Product, 253, NULL))
+					Prod = Product;
+				else
+					//Prod = "(Unnamed DFU device)";
+					Prod = "(Unnamed DFU | HID device)";//modified by havenxie
+				// Add the name of the device
+				m_CtrlDevices.AddString(Prod);
+			}
+			delete[] (PBYTE)detail;
 		}
+		SetupDiDestroyDeviceInfoList(info);
 	}
 	// Select the one we had before.
 	Sel=0;
@@ -455,13 +419,6 @@ void CDfuSeDemoDlg::OnCancel()
 {
 	BOOL bStop=TRUE;
 	DFUThreadContext Context;
-
-	if (m_OperationCode)
-	{
-		bStop=FALSE;
-		if (AfxMessageBox("Operation on-going. Leave anyway ?", MB_OKCANCEL|MB_ICONQUESTION)==IDOK)
-			bStop=TRUE;
-	}
 
 	if (bStop)
 	{
@@ -1849,7 +1806,7 @@ void CDfuSeDemoDlg::OnButtonupgrade()
 
 	if(ReadProtected)
 	{
-		if (AfxMessageBox("Your device is read protected.\nWould you remove the read protection?", MB_YESNO |MB_ICONQUESTION)==IDYES)
+		if (TRUE/*AfxMessageBox("Your device is read protected.\nWould you remove the read protection?", MB_YESNO | MB_ICONQUESTION) == IDYES*/)
 		{
 			HANDLE hdl;
 			if (STDFU_Open((LPSTR)(LPCSTR)m_CurrDFUName,&hdl)==STDFU_NOERROR)
@@ -2337,39 +2294,14 @@ void CDfuSeDemoDlg::OnTimer(UINT_PTR nIDEvent)
 								CString Tempo, DevId, FileId;
 
 								m_CurrentTarget=m_CtrlDevTargets.GetNextItem(-1, LVIS_SELECTED);
-								/*if (m_CurrentTarget==-1)
-								{
-									HandleTxtError("Please select one or several targets before !");
-									return;
-								}
-
-								m_CtrlDevAppVid.GetWindowText(DevId);
-								if (DevId.IsEmpty())
-								{
-									if (AfxMessageBox("Your device was plugged in DFU mode. \nSo it is impossible to make sure this file is correct for this device.\n\nContinue however ?", MB_YESNO)!=IDYES)
-										return;
-								}
-								else
-								{
-									m_CtrlFileVid.GetWindowText(FileId);
-									if (FileId!=DevId)
-									{
-										if (AfxMessageBox("This file is not supposed to be used with that device.\n\nContinue however ?", MB_YESNO)!=IDYES)
-											return;
-									}
-									else
-									{
-										m_CtrlDevAppPid.GetWindowText(DevId);
-										m_CtrlFilePid.GetWindowText(FileId);
-										if (FileId!=DevId)
-										{
-											if (AfxMessageBox("This file is not supposed to be used with that device.\n\nContinue however ?", MB_YESNO)!=IDYES)
-												return;
-										}
-									}
-								}*/
-
 								LaunchVerify();
+							}
+							else
+							{
+								TakeMCUOutofDFUMode();
+								OnCancel();
+								KillTimer(nIDEvent);
+								PostQuitMessage(0);
 							}
 						}
 						if ( (Context.Operation==OPERATION_UPLOAD) &&
@@ -2432,7 +2364,6 @@ void CDfuSeDemoDlg::OnTimer(UINT_PTR nIDEvent)
 							m_BtnUpgrade.EnableWindow((Tmp.GetLength()!=0) && (m_CurrDevDFUDesc.bmAttributes & ATTR_DNLOAD_CAPABLE));
 							m_BtnVerify.EnableWindow((Tmp.GetLength()!=0) && (m_CurrDevDFUDesc.bmAttributes & ATTR_UPLOAD_CAPABLE));
 							m_BtnAbort.EnableWindow(FALSE);
-							TakeMCUOutofDFUMode(); //Now take MCU out of DFU Mode and voila, MCU is updated with the latest fw!
 							PostQuitMessage(0);
 						}
 					}					
